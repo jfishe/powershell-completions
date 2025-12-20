@@ -1,63 +1,62 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0
+.VERSION 2.0
 
 .GUID e666cc2a-8d7d-4112-a490-ee096bf66401
 
-.AUTHOR jdfen
+.AUTHOR jdfenw@gmail.com
 
-.COMPANYNAME
+.COMPANYNAME John D. Fisher
 
-.COPYRIGHT
+.COPYRIGHT 2025 John D. Fisher
 
 .TAGS
 
-.LICENSEURI
+.LICENSEURI https://github.com/jfishe/PowerShell/blob/main/LICENSE
 
-.PROJECTURI
+.PROJECTURI https://github.com/jfishe/PowerShell
 
 .ICONURI
 
 .EXTERNALMODULEDEPENDENCIES
  PSBashCompletions
+ VimTabCompletion
+ WSLTabCompletion
 
 .REQUIREDSCRIPTS
 
 .EXTERNALSCRIPTDEPENDENCIES
+ condax
+ pandoc
+ uv
+ winget
 
 .RELEASENOTES
+ PowerShell data files (psd1) only support static content, so
+ $CompletionScripts moved to $Profile.Completions.ps1.
+ Each entry registers the associated Argument-Completer.
 
+ Where possible, script blocks replace sourcing generated completion scripts
+ because the overhead is low and
+ avoids the need to regenerate when the external application updates.
 
-.PRIVATEDATA
-
-#>
-
-<#
+.SYNOPSIS
+ Command-to-Script mapping hash-table, lazy loaded when completion first invoked for each command.
 
 .DESCRIPTION
- Profile.Completions.ps1
+ Profile.Completions.ps1 implements a lazy-loading mechanism for completion scripts.
 
-#>
-Param()
+ Profile.Completions.ps1 derives from Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell.
 
-<#
-    .SYNOPSIS
-        Command-to-Script Mapping Hash Table.
-    .DESCRIPTION
-        This PowerShell Data File (.psd1) contains the necessary mappings which map commands and programs to their
-        corresponding shell completion scripts or modules.
+.LINK
+ Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell (https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell)
 
-        It is used in order to implement a lazy-loading mechanism for importing completion scripts.
-    .NOTES
-        - The key is the command name.
-        - The value is the command that generates the completion script.
+.NOTES
+ $CompletionScripts map commands and programs to their corresponding shell completion scripts or modules. Additional commands and scripts may be added to $CompletionScripts.
 
-        Tools with names different than their commands:
-            - Obsidian CLI uses `obs` as its CLI command.
-            - 1Password CLI uses `op` as its CLI command.
-            - `s` is the command for `s-search`.
-            - `gh-copilot` is the key for the GitHub Copilot CLI Extension Completion Script, but the command is `gh copilot`.
+  - The key is the command name.
+  - The value is a script block that generates the completion script.
 #>
 
 $CompletionScripts = @{
@@ -73,10 +72,25 @@ $CompletionScripts = @{
     'pandoc' = {
         # PSBashCompletions
         if (($Null -ne (Get-Command bash -ErrorAction Ignore)) -or ($Null -ne (Get-Command git -ErrorAction Ignore))) {
-            Import-Module PSBashCompletions
-            $completionPath = "$env:PROFILEDIR/bash-completion"
-            Register-BashArgumentCompleter pandoc "$completionPath/pandoc-completion.sh"
+            Import-Module -Name PSBashCompletions
+            $completionPath = Split-Path $PROFILE | Join-Path -ChildPath "Completions"
+            Register-BashArgumentCompleter pandoc "$completionPath\pandoc-completion.sh"
         }
+    }
+    'winget' = {
+        # https://github.com/microsoft/winget-cli/blob/master/doc/Completion.md
+        Register-ArgumentCompleter -Native -CommandName winget -ScriptBlock {
+            param($wordToComplete, $commandAst, $cursorPosition)
+            [Console]::InputEncoding = [Console]::OutputEncoding = $OutputEncoding = [System.Text.Utf8Encoding]::new()
+            $Local:word = $wordToComplete.Replace('"', '""')
+            $Local:ast = $commandAst.ToString().Replace('"', '""')
+            winget complete --word="$Local:word" --commandline "$Local:ast" --position $cursorPosition | ForEach-Object {
+                [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+            }
+        }
+    }
+    'wsl'    = {
+        Import-Module WSLTabCompletion
     }
 }
 
