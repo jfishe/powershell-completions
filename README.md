@@ -11,6 +11,23 @@ Where possible, script blocks replace sourcing generated completion scripts
 because the overhead is low. This practice avoids regenerating the completion
 scripts periodically.
 
+## Installation
+
+Clone `powershell-completions` to a new folder
+in the PowerShell profile directory.
+Source the completions when starting PowerShell.
+
+```powershell
+Set-Location -Path (Split-Path $PROFILE)
+git clone https://github.com/jfishe/powershell-completions.git Completions
+
+@'
+If ($host.Name -eq 'ConsoleHost') {
+  . "$PSScriptRoot/Completions/Profile.Completions"
+}
+'@ | Out-File -Append -Path $PROFILE
+```
+
 ## Condax
 
 [Condax][condax] generates its own completion script,
