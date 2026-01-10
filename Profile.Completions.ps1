@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 2.0
+.VERSION 2.1
 
 .GUID e666cc2a-8d7d-4112-a490-ee096bf66401
 
@@ -12,6 +12,7 @@
 .COPYRIGHT 2025 John D. Fisher
 
 .TAGS
+ argumentcompleter
 
 .LICENSEURI https://github.com/jfishe/PowerShell/blob/main/LICENSE
 
@@ -27,10 +28,11 @@
 .REQUIREDSCRIPTS
 
 .EXTERNALSCRIPTDEPENDENCIES
- condax
+ bat
  pandoc
  uv
  winget
+ pixi
 
 .RELEASENOTES
  PowerShell data files (psd1) only support static content, so
@@ -41,6 +43,11 @@
  because the overhead is low and
  avoids the need to regenerate when the external application updates.
 
+.PRIVATEDATA
+
+#>
+
+<# 
 .SYNOPSIS
  Command-to-Script mapping hash-table, lazy loaded when completion first invoked for each command.
 
@@ -50,7 +57,23 @@
  Profile.Completions.ps1 derives from Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell.
 
 .LINK
- Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell (https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell)
+ Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell (https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell).
+.LINK
+ Bat is a Linux cat clone with syntax highlighting and Git integration (https://github.com/sharkdp/bat).
+.LINK
+ Pixi is a fast, modern, and reproducible package management tool for developers of all backgrounds (https://pixi.prefix.dev/dev/installation/#winget).
+.LINK
+ Uv is an extremely fast Python package and project manager, written in Rust (https://docs.astral.sh/uv/).
+.LINK
+ VimTabCompletion is a Vim Argument Completer for PowerShell (https://github.com/jfishe/VimTabCompletion).
+.LINK
+ Pandoc is a universal document converter (https://pandoc.org/).
+ PSBashCompletions is a bridge to enable bash completions to be run from within PowerShell (https://github.com/tillig/ps-bash-completions).
+.LINK
+ Winget is the Microsoft Windows Package Manager, a command line utility enables installing applications and other packages from the command line (https://github.com/microsoft/winget-cli/blob/master/doc/Completion.md).
+.LINK
+ Wsl is the command line interface to Windows Subsystem for Linux (https://learn.microsoft.com/en-us/windows/wsl/).
+ WSLTabCompletion is a PowerShell module which includes a .Net ArgumentCompleter for the native wsl.exe command, used to launch and manage the Windows Subsystem for Linux.
 
 .NOTES
  $CompletionScripts map commands and programs to their corresponding shell completion scripts or modules. Additional commands and scripts may be added to $CompletionScripts.
@@ -60,15 +83,10 @@
 #>
 
 $CompletionScripts = @{
+    'bat'    = '& bat --completion ps1'
+    'pixi'   = '& pixi completion --shell=powershell'
     'uv'     = '& "uv" "generate-shell-completion" "powershell"'
-    # Strip PSReadLine settings.
-    'condax' = {
-        $array = & condax --show-completion
-        $array[2..($array.Length - 1)]
-    }
-    'vim'    = {
-        Import-Module -Name VimTabCompletion
-    }
+    'vim'    = { Import-Module -Name VimTabCompletion }
     'pandoc' = {
         # PSBashCompletions
         if (($Null -ne (Get-Command bash -ErrorAction Ignore)) -or ($Null -ne (Get-Command git -ErrorAction Ignore))) {
@@ -78,7 +96,6 @@ $CompletionScripts = @{
         }
     }
     'winget' = {
-        # https://github.com/microsoft/winget-cli/blob/master/doc/Completion.md
         Register-ArgumentCompleter -Native -CommandName winget -ScriptBlock {
             param($wordToComplete, $commandAst, $cursorPosition)
             [Console]::InputEncoding = [Console]::OutputEncoding = $OutputEncoding = [System.Text.Utf8Encoding]::new()
@@ -89,9 +106,7 @@ $CompletionScripts = @{
             }
         }
     }
-    'wsl'    = {
-        Import-Module WSLTabCompletion
-    }
+    'wsl'    = { Import-Module WSLTabCompletion }
 }
 
 # ------------------------------------------------------------------------------
