@@ -47,7 +47,7 @@
 
 #>
 
-<# 
+<#
 .SYNOPSIS
  Command-to-Script mapping hash-table, lazy loaded when completion first invoked for each command.
 
@@ -62,6 +62,8 @@
  Bat is a Linux cat clone with syntax highlighting and Git integration (https://github.com/sharkdp/bat).
 .LINK
  Pixi is a fast, modern, and reproducible package management tool for developers of all backgrounds (https://pixi.prefix.dev/dev/installation/#winget).
+.LINK
+ Ripgrep is a command line tool that searches your files for patterns that you give it (https://github.com/BurntSushi/ripgrep).
 .LINK
  Uv is an extremely fast Python package and project manager, written in Rust (https://docs.astral.sh/uv/).
 .LINK
@@ -85,6 +87,7 @@
 $CompletionScripts = @{
     'bat'    = '& bat --completion ps1'
     'pixi'   = '& pixi completion --shell=powershell'
+    'rg'     = '& rg --generate=complete-powershell'
     'uv'     = '& "uv" "generate-shell-completion" "powershell"'
     'vim'    = { Import-Module -Name VimTabCompletion }
     'pandoc' = {
