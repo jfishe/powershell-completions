@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 2.1
+.VERSION 2.2
 
 .GUID e666cc2a-8d7d-4112-a490-ee096bf66401
 
@@ -9,14 +9,14 @@
 
 .COMPANYNAME John D. Fisher
 
-.COPYRIGHT 2025 John D. Fisher
+.COPYRIGHT 2026 John D. Fisher
 
 .TAGS
  argumentcompleter
 
-.LICENSEURI https://github.com/jfishe/PowerShell/blob/main/LICENSE
+.LICENSEURI https://github.com/jfishe/powershell-completions/blob/main/LICENSE
 
-.PROJECTURI https://github.com/jfishe/PowerShell
+.PROJECTURI https://github.com/jfishe/powershell-completions
 
 .ICONURI
 
@@ -29,7 +29,9 @@
 
 .EXTERNALSCRIPTDEPENDENCIES
  bat
+ copilot
  pandoc
+ rg
  uv
  winget
  pixi
@@ -37,11 +39,10 @@
 .RELEASENOTES
  PowerShell data files (psd1) only support static content, so
  $CompletionScripts moved to $Profile.Completions.ps1.
- Each entry registers the associated Argument-Completer.
+ Each entry registers the associated Argument-Completer lazily.
 
- Where possible, script blocks replace sourcing generated completion scripts
- because the overhead is low and
- avoids the need to regenerate when the external application updates.
+ Completion loaders are grouped by source: generated scripts,
+ imported modules, bash completion files, and native completions.
 
 .PRIVATEDATA
 
@@ -49,10 +50,14 @@
 
 <#
 .SYNOPSIS
- Command-to-Script mapping hash-table, lazy loaded when completion first invoked for each command.
+ Lazy-loaded native command completions for PowerShell.
 
 .DESCRIPTION
- Profile.Completions.ps1 implements a lazy-loading mechanism for completion scripts.
+ Lazy-loaded native command completions for PowerShell.
+
+ A single top-level argument completer defers command-specific setup until completion is first invoked for a command.
+ Completion loaders are registered as script blocks and sourced from generated PowerShell scripts, PowerShell modules,
+ bash completion files, or native completion handlers.
 
  Profile.Completions.ps1 derives from Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell.
 
@@ -69,37 +74,78 @@
 .LINK
  VimTabCompletion is a Vim Argument Completer for PowerShell (https://github.com/jfishe/VimTabCompletion).
 .LINK
+ GitHub Copilot CLI - An AI-powered coding assistant (https://docs.github.com/en/copilot).
  Pandoc is a universal document converter (https://pandoc.org/).
  PSBashCompletions is a bridge to enable bash completions to be run from within PowerShell (https://github.com/tillig/ps-bash-completions).
 .LINK
- Winget is the Microsoft Windows Package Manager, a command line utility enables installing applications and other packages from the command line (https://github.com/microsoft/winget-cli/blob/master/doc/Completion.md).
+ Winget is the Microsoft Windows Package Manager, a command line utility enables installing applications and other packages from the command line
+ (https://github.com/microsoft/winget-cli/blob/master/doc/Completion.md).
 .LINK
  Wsl is the command line interface to Windows Subsystem for Linux (https://learn.microsoft.com/en-us/windows/wsl/).
  WSLTabCompletion is a PowerShell module which includes a .Net ArgumentCompleter for the native wsl.exe command, used to launch and manage the Windows Subsystem for Linux.
 
 .NOTES
- $CompletionScripts map commands and programs to their corresponding shell completion scripts or modules. Additional commands and scripts may be added to $CompletionScripts.
+ $CompletionScripts map commands and programs to a script block that registers or imports completion support.
+ Additional commands and loaders may be added to $CompletionScripts.
 
   - The key is the command name.
-  - The value is a script block that generates the completion script.
+  - The value is a script block executed once per session for that command.
 #>
+& {
+    function New-GeneratedCompletionLoader {
+        param(
+            [Parameter(Mandatory = $true)]
+            [String[]]$Command
+        )
 
-$CompletionScripts = @{
-    'bat'    = '& bat --completion ps1'
-    'pixi'   = '& pixi completion --shell=powershell'
-    'rg'     = '& rg --generate=complete-powershell'
-    'uv'     = '& "uv" "generate-shell-completion" "powershell"'
-    'vim'    = { Import-Module -Name VimTabCompletion }
-    'pandoc' = {
-        # PSBashCompletions
-        if (($Null -ne (Get-Command bash -ErrorAction Ignore)) -or ($Null -ne (Get-Command git -ErrorAction Ignore))) {
-            Import-Module -Name PSBashCompletions
-            $completionPath = Split-Path $PROFILE | Join-Path -ChildPath "Completions"
-            Register-BashArgumentCompleter pandoc "$completionPath\pandoc-completion.sh"
-        }
+        $invocation = ($Command | ForEach-Object { "'{0}'" -f $_.Replace("'", "''") }) -join ' '
+        $scriptText = @"
+param(`$wordToComplete, `$commandAst, `$cursorPosition)
+`$generatedScript = & $invocation | Out-String
+if (`$generatedScript) {
+    Invoke-Expression `$generatedScript
+}
+"@
+
+        [scriptblock]::Create($scriptText)
     }
-    'winget' = {
-        Register-ArgumentCompleter -Native -CommandName winget -ScriptBlock {
+
+    function New-ModuleCompletionLoader {
+        param(
+            [Parameter(Mandatory = $true)]
+            [String]$ModuleName
+        )
+
+        $escapedModuleName = $ModuleName.Replace("'", "''")
+        [scriptblock]::Create(@"
+param(`$wordToComplete, `$commandAst, `$cursorPosition)
+Import-Module -Name '$escapedModuleName'
+"@)
+    }
+
+    function New-BashCompletionLoader {
+        param(
+            [Parameter(Mandatory = $true)]
+            [String]$CommandName,
+
+            [Parameter(Mandatory = $true)]
+            [String]$FileName
+        )
+
+        $escapedCommandName = $CommandName.Replace("'", "''")
+        $escapedFileName = $FileName.Replace("'", "''")
+        [scriptblock]::Create(@"
+param(`$wordToComplete, `$commandAst, `$cursorPosition)
+if ((Get-Command bash -ErrorAction Ignore) -or (Get-Command git -ErrorAction Ignore)) {
+    Import-Module -Name PSBashCompletions
+    `$completionPath = Join-Path -Path (Split-Path `$PROFILE) -ChildPath 'Completions'
+    Register-BashArgumentCompleter '$escapedCommandName' (Join-Path -Path `$completionPath -ChildPath '$escapedFileName')
+}
+"@)
+    }
+
+    $completionLoaders = @{
+        'winget' = {
             param($wordToComplete, $commandAst, $cursorPosition)
             [Console]::InputEncoding = [Console]::OutputEncoding = $OutputEncoding = [System.Text.Utf8Encoding]::new()
             $Local:word = $wordToComplete.Replace('"', '""')
@@ -109,70 +155,42 @@ $CompletionScripts = @{
             }
         }
     }
-    'wsl'    = { Import-Module WSLTabCompletion }
-}
 
-# ------------------------------------------------------------------------------
-# Import-Completion
-# ------------------------------------------------------------------------------
-
-Function Import-Completion {
-    <#
-    .SYNOPSIS
-        Load the completion script for the specified command.
-    .DESCRIPTION
-        This function loads the completion script for the specified command by dot-sourcing the script file.
-
-        The function checks if the completion script for the specified command exists in the `$CompletionScripts` hash
-        table and if it has not already been loaded. If both conditions are met, the function dot-sources the completion
-        script defined in the hash table and sets the `$Script:CompletionLoaded` hash table entry for the specified
-        command to `$true` (for the current session).
-
-    .PARAMETER CommandName
-        The name of the command for which to load the completion script. This parameter is mandatory and accepts input
-        from the pipeline. The value of this parameter is validated against the keys in the `$CompletionScripts` hash
-        table defined in the `Completions.psd1` file.
-
-   .NOTES
-       This function is used to implement a lazy-loading mechanism for importing completion scripts.
-
-    .EXAMPLE
-        # Load the completion script for the `aws` command.
-        Import-Completion -CommandName 'aws'
-
-        # Check if Loaded
-        $Script:CompletionLoaded['aws']
-    #>
-    [CmdletBinding(
-        SupportsShouldProcess = $false,
-        ConfirmImpact = 'None'
-    )]
-    Param(
-        [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true)]
-        [ValidateScript({ $CompletionScripts.ContainsKey($_) })]
-        [String]$CommandName
-    )
-
-    If ($CompletionScripts.ContainsKey($CommandName) -and -not $Script:CompletionLoaded[$CommandName]) {
-        $CompletionScripts[$CommandName] | Invoke-Expression | Out-String | ? { $_ } | Invoke-Expression
-        $Script:CompletionLoaded[$CommandName] = $true
+    $generatedCompletionCommands = @{
+        'bat'  = @('bat', '--completion', 'ps1')
+        'pixi' = @('pixi', 'completion', '--shell=powershell')
+        'rg'   = @('rg', '--generate=complete-powershell')
+        'uv'   = @('uv', 'generate-shell-completion', 'powershell')
     }
-}
 
-# Hashtable to track which completions have been loaded
-$script:CompletionLoaded = @{}
+    foreach ($entry in $generatedCompletionCommands.GetEnumerator()) {
+        $completionLoaders[$entry.Key] = New-GeneratedCompletionLoader -Command $entry.Value
+    }
 
-## POWERSHELL CORE TAB COMPLETION ##############################################################
-if (!$UseLegacyTabExpansion -and ($PSVersionTable.PSVersion.Major -ge 5)) {
-    Microsoft.PowerShell.Core\Register-ArgumentCompleter `
-        -Command @($CompletionScripts.Keys) `
-        -Native `
-        -ScriptBlock {
-        param(
-            $wordToComplete,
-            $commandAst,
-            $cursorPosition
-        )
-        Import-Completion -CommandName $commandAst.CommandElements[0]
+    $moduleCompletions = @{
+        'vim' = 'VimTabCompletion'
+        'wsl' = 'WSLTabCompletion'
+    }
+
+    foreach ($entry in $moduleCompletions.GetEnumerator()) {
+        $completionLoaders[$entry.Key] = New-ModuleCompletionLoader -ModuleName $entry.Value
+    }
+
+    $bashCompletionFiles = @{
+        'copilot' = 'copilot-completion.sh'
+        'pandoc'  = 'pandoc-completion.sh'
+    }
+
+    foreach ($entry in $bashCompletionFiles.GetEnumerator()) {
+        $completionLoaders[$entry.Key] = New-BashCompletionLoader -CommandName $entry.Key -FileName $entry.Value
+    }
+
+    if (!$UseLegacyTabExpansion -and ($PSVersionTable.PSVersion.Major -ge 5)) {
+        foreach ($entry in $completionLoaders.GetEnumerator()) {
+            Microsoft.PowerShell.Core\Register-ArgumentCompleter `
+                -CommandName $entry.Key `
+                -Native `
+                -ScriptBlock $entry.Value
+        }
     }
 }
