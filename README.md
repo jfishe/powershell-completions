@@ -1,6 +1,6 @@
 # PowerShell Completions
 
-`Profile.Completions.ps1` is derived from Jimmy Biggs' No Clocks Blog,
+`Profile.Completions.ps1` is derived from Jimmy Briggs' No Clocks Blog,
 *[Lazy Loading][lazy_loading] Tab Completion Scripts in PowerShell*.
 
 PowerShell data files (`psd1`) only support static content, so the lazy-loading
@@ -114,6 +114,20 @@ its first completion.
 
 `wsl` uses the PowerShell module [WSLTabCompletion][wsltabcompletion].
 
+## Credits
+
+- The lazy-loading approach is adapted from Jimmy Briggs' No Clocks Blog,
+  *[Lazy Loading Tab Completion Scripts in PowerShell][lazy_loading]*.
+- The `winget` completer is copied from Microsoft's
+  [winget-cli completion docs][winget-completion] (MIT).
+- Completions come from [posh-git][posh-git],
+  [PSBashCompletions][psbashcompletions], [VimTabCompletion][vimtabcompletion],
+  [WSLTabCompletion][wsltabcompletion], [bat][bat], [ripgrep][rg],
+  [pixi][pixi], [uv][uv], [pandoc][pandoc], and [GitHub Copilot CLI][copilot].
+  These projects are not bundled here and keep their own licenses.
+
+See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for license details.
+
 [lazy_loading]: https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell
 [posh-git]: https://github.com/dahlbyk/posh-git
 [psbashcompletions]: https://www.powershellgallery.com/packages/PSBashCompletions/
@@ -121,3 +135,9 @@ its first completion.
 [vimtabcompletion]: https://www.powershellgallery.com/packages/VimTabCompletion
 [winget]: https://learn.microsoft.com/en-us/windows/package-manager/winget/tab-completion
 [wsltabcompletion]: https://www.powershellgallery.com/packages/WSLTabCompletion/
+[bat]: https://github.com/sharkdp/bat
+[copilot]: https://docs.github.com/en/copilot
+[pandoc]: https://pandoc.org/
+[pixi]: https://pixi.sh/
+[rg]: https://github.com/BurntSushi/ripgrep
+[winget-completion]: https://github.com/microsoft/winget-cli/blob/master/doc/Completion.md

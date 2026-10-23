@@ -9,7 +9,7 @@
 
 .COMPANYNAME John D. Fisher
 
-.COPYRIGHT 2026 John D. Fisher
+.COPYRIGHT 2020-2026 John D. Fisher
 
 .TAGS
  argumentcompleter
@@ -65,10 +65,10 @@
  PowerShell script, a PowerShell module, or a bash completion file, then re-runs completion so the first <Tab> returns
  results. Commands with native completion handlers, such as winget, are registered directly.
 
- Profile.Completions.ps1 derives from Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell.
+ Profile.Completions.ps1 derives from Jimmy Briggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell.
 
 .LINK
- Jimmy Biggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell (https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell).
+ Jimmy Briggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell (https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell).
 .LINK
  Bat is a Linux cat clone with syntax highlighting and Git integration (https://github.com/sharkdp/bat).
 .LINK
@@ -93,7 +93,8 @@
 .LINK
  Wsl is the command line interface to Windows Subsystem for Linux (https://learn.microsoft.com/en-us/windows/wsl/).
 .LINK
- WSLTabCompletion is a PowerShell module which includes a .Net ArgumentCompleter for the native wsl.exe command, used to launch and manage the Windows Subsystem for Linux.
+ WSLTabCompletion is a PowerShell module which includes a .Net ArgumentCompleter for the native wsl.exe command, used to launch and manage the Windows Subsystem for Linux
+ (https://www.powershellgallery.com/packages/WSLTabCompletion/).
 
 .NOTES
  $completionLoaders maps each command name to the script block registered as its native argument completer.
@@ -181,6 +182,8 @@ if ((Get-Command bash -ErrorAction Ignore) -or (Get-Command git -ErrorAction Ign
     }
 
     $completionLoaders = @{
+        # From microsoft/winget-cli doc/Completion.md (MIT, (c) Microsoft Corporation).
+        # See THIRD-PARTY-NOTICES.md.
         'winget' = {
             param($wordToComplete, $commandAst, $cursorPosition)
             [Console]::InputEncoding = [Console]::OutputEncoding = $OutputEncoding = [System.Text.Utf8Encoding]::new()

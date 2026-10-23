@@ -1,54 +1,16 @@
 Describe 'Profile.Completions' {
     BeforeAll {
         $profileCompletions = Join-Path (Split-Path -Parent $PSScriptRoot) 'Profile.Completions.ps1'
-        function Global:Get-NativeArgumentCompleter {
-            param(
-                [String]$CommandName = '*'
-            )
 
-            $getExecutionContextFromTLS = [PowerShell].Assembly.GetType('System.Management.Automation.Runspaces.LocalPipeline').GetMethod(
-                'GetExecutionContextFromTLS',
-                [System.Reflection.BindingFlags]'Static,NonPublic'
-            )
-            $internalExecutionContext = $getExecutionContextFromTLS.Invoke(
-                $null,
-                [System.Reflection.BindingFlags]'Static, NonPublic',
-                $null,
-                $null,
-                $psculture
-            )
-
-            $argumentCompletersProperty = $internalExecutionContext.GetType().GetProperty(
-                'NativeArgumentCompleters',
-                [System.Reflection.BindingFlags]'NonPublic, Instance'
-            )
-
-            $argumentCompleters = $argumentCompletersProperty.GetGetMethod($true).Invoke(
-                $internalExecutionContext,
-                [System.Reflection.BindingFlags]'Instance, NonPublic, GetProperty',
-                $null,
-                @(),
-                $psculture
-            )
-
-            foreach ($completer in $argumentCompleters.Keys) {
-                $name, $parameter = $completer -split ':'
-
-                if ($name -like $CommandName) {
-                    [PSCustomObject]@{
-                        CommandName = $name
-                        ParameterName = $parameter
-                        Definition = $argumentCompleters[$completer]
-                    }
-                }
+        # Capture native completer registrations instead of registering them.
+        $nativeCompleters = @{}
+        Mock Register-ArgumentCompleter -ParameterFilter { $Native } {
+            foreach ($name in $CommandName) {
+                $nativeCompleters[$name] = $ScriptBlock
             }
         }
 
         . ([scriptblock]::Create((Get-Content -Path $profileCompletions -Raw)))
-    }
-
-    AfterAll {
-        Remove-Item Function:\Get-NativeArgumentCompleter -ErrorAction SilentlyContinue
     }
 
     It 'does not leak loader builder functions after dot-sourcing' {
@@ -64,10 +26,10 @@ Describe 'Profile.Completions' {
     ) {
         param($CommandName, $Invocation)
 
-        $completer = Get-NativeArgumentCompleter -CommandName $CommandName
+        $completer = $nativeCompleters[$CommandName]
         $completer | Should -Not -BeNullOrEmpty
 
-        $definition = $completer.Definition.ToString()
+        $definition = $completer.ToString()
         $definition | Should -Match '^\s*param\('
         $definition | Should -Match ([regex]::Escape($Invocation))
         $definition | Should -Match 'Invoke-Expression'
@@ -87,10 +49,10 @@ Describe 'Profile.Completions' {
     ) {
         param($CommandName, $ModuleName)
 
-        $completer = Get-NativeArgumentCompleter -CommandName $CommandName
+        $completer = $nativeCompleters[$CommandName]
         $completer | Should -Not -BeNullOrEmpty
 
-        $definition = $completer.Definition.ToString()
+        $definition = $completer.ToString()
         $definition | Should -Match '^\s*param\('
         $definition | Should -Match ([regex]::Escape("Import-Module -Name '$ModuleName' -Global -Force"))
         $definition | Should -Not -Match 'New-GeneratedCompletionLoader|New-ModuleCompletionLoader|New-BashCompletionLoader|Import-Completion'
@@ -102,10 +64,10 @@ Describe 'Profile.Completions' {
     ) {
         param($CommandName, $FileName)
 
-        $completer = Get-NativeArgumentCompleter -CommandName $CommandName
+        $completer = $nativeCompleters[$CommandName]
         $completer | Should -Not -BeNullOrEmpty
 
-        $definition = $completer.Definition.ToString()
+        $definition = $completer.ToString()
         $definition | Should -Match '^\s*param\('
         $definition | Should -Match 'Import-Module -Name PSBashCompletions -Global'
         $definition | Should -Match ([regex]::Escape("Register-BashArgumentCompleter '$CommandName'"))
@@ -114,10 +76,10 @@ Describe 'Profile.Completions' {
     }
 
     It 'registers a self-contained native winget completer' {
-        $completer = Get-NativeArgumentCompleter -CommandName 'winget'
+        $completer = $nativeCompleters['winget']
         $completer | Should -Not -BeNullOrEmpty
 
-        $definition = $completer.Definition.ToString()
+        $definition = $completer.ToString()
         $definition | Should -Match '^\s*param\('
         $definition | Should -Match 'winget complete'
         $definition | Should -Match 'CompletionResult'
@@ -137,7 +99,7 @@ Describe 'Profile.Completions' {
     ) {
         param($CommandName)
 
-        $definition = (Get-NativeArgumentCompleter -CommandName $CommandName).Definition.ToString()
+        $definition = $nativeCompleters[$CommandName].ToString()
         $definition | Should -Match ([regex]::Escape('$global:__CompletionLoaderActive'))
         $definition | Should -Match 'TabExpansion2'
     }
