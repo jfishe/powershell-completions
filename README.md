@@ -6,15 +6,17 @@
 PowerShell data files (`psd1`) only support static content, so the lazy-loading
 registry lives in `Profile.Completions.ps1`.
 
-At startup, the script registers one top-level native argument completer for
-all known commands. The first time completion is requested for a command, that
-command's loader runs once for the current session and registers the real
-completion handler.
+At startup, the script registers a lazy loader as the native argument completer
+for each known command. The first time completion is requested for a command,
+that command's loader runs once for the current session, registers the real
+completion handler, and re-runs completion so the first `Tab` returns
+results.
 
 Completion loaders are grouped by source:
 
 - Generated PowerShell completion scripts: `bat`, `pixi`, `rg`, `uv`
-- Imported PowerShell modules: `vim`, `wsl`
+- Imported PowerShell modules: `git`/`tgit`/`gitk` (posh-git), `vim` and its
+  variants, `wsl`
 - Saved bash completion files via `PSBashCompletions`: `copilot`, `pandoc`
 - Native completion: `winget`
 
@@ -33,6 +35,13 @@ If ($host.Name -eq 'ConsoleHost') {
   . "$PSScriptRoot/Completions/Profile.Completions.ps1"
 }
 '@ | Out-File -Append -Path $PROFILE
+```
+
+Install the PowerShell modules the loaders import:
+
+```powershell
+Install-Module posh-git, PSBashCompletions, VimTabCompletion,
+  WSLTabCompletion -Scope CurrentUser
 ```
 
 ## Bash completion files
@@ -84,11 +93,18 @@ Invoke-Pester -Path .\Tests\Profile.Completions.Tests.ps1 `
   -Configuration @{ Output = @{ Verbosity = 'Detailed' } }
 ```
 
+## Git
+
+`git`, `tgit`, and `gitk` use the PowerShell module [posh-git][posh-git].
+It is lazy-loaded for completion only; starship draws the prompt.
+An `Import-Module posh-git` in `$PROFILE` still works, but is no longer
+needed; removing it keeps posh-git out of startup.
+
 ## Vim
 
-`Vim` and its variants (e.g. `gvim`) use the PowerShell module
-[VimTabCompletion][vimtabcompletion].
-Complete with `vim` first; the variants are added by the module.
+`vim`, `vimdiff`, `gvim`, `gvimdiff`, and `evim` use the PowerShell module
+[VimTabCompletion][vimtabcompletion]. Each variant lazy-loads the module on
+its first completion.
 
 ## Winget
 
@@ -99,6 +115,7 @@ Complete with `vim` first; the variants are added by the module.
 `wsl` uses the PowerShell module [WSLTabCompletion][wsltabcompletion].
 
 [lazy_loading]: https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell
+[posh-git]: https://github.com/dahlbyk/posh-git
 [psbashcompletions]: https://www.powershellgallery.com/packages/PSBashCompletions/
 [uv]: https://docs.astral.sh/uv/getting-started/installation/
 [vimtabcompletion]: https://www.powershellgallery.com/packages/VimTabCompletion
