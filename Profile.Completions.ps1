@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 2.4
+.VERSION 2.4.1
 
 .GUID e666cc2a-8d7d-4112-a490-ee096bf66401
 
@@ -145,11 +145,14 @@ try {
             [String[]]$Command
         )
 
+        # A dynamic module keeps top-level helpers that the generated completer
+        # calls (e.g. chezmoi's __chezmoi_debug) alive after setup returns.
+        # -AsCustomObject skips importing it, so they stay out of global scope.
         $invocation = ($Command | ForEach-Object { "'{0}'" -f $_.Replace("'", "''") }) -join ' '
         New-CompletionLoader -Setup @"
 `$generatedScript = & $invocation | Out-String
 if (`$generatedScript) {
-    Invoke-Expression `$generatedScript
+    `$null = New-Module -AsCustomObject -ScriptBlock ([scriptblock]::Create(`$generatedScript))
 }
 "@
     }

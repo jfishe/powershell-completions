@@ -33,7 +33,7 @@ Describe 'Profile.Completions' {
         $definition = $completer.ToString()
         $definition | Should -Match '^\s*param\('
         $definition | Should -Match ([regex]::Escape($Invocation))
-        $definition | Should -Match 'Invoke-Expression'
+        $definition | Should -Match 'New-Module -AsCustomObject -ScriptBlock'
         $definition | Should -Not -Match 'New-GeneratedCompletionLoader|New-ModuleCompletionLoader|New-BashCompletionLoader|Import-Completion'
     }
 
@@ -116,12 +116,17 @@ Describe 'Profile.Completions first-Tab replay' {
             "Register-ArgumentCompleter -Native -CommandName bat -ScriptBlock { [System.Management.Automation.CompletionResult]::new('ok') }"
         }
         function Global:rg { }
+        # Cobra-style script: the completer calls a helper defined outside it.
+        function Global:chezmoi {
+            "function __chezmoi_helper { 'ok' }"
+            "Register-ArgumentCompleter -CommandName chezmoi -ScriptBlock { [System.Management.Automation.CompletionResult]::new((__chezmoi_helper)) }"
+        }
 
         . ([scriptblock]::Create((Get-Content -Path $profileCompletions -Raw)))
     }
 
     AfterAll {
-        Remove-Item Function:\bat, Function:\rg -ErrorAction SilentlyContinue
+        Remove-Item Function:\bat, Function:\rg, Function:\chezmoi -ErrorAction SilentlyContinue
         Remove-Variable -Name __CompletionLoaderActive -Scope Global -ErrorAction SilentlyContinue
     }
 
@@ -129,6 +134,14 @@ Describe 'Profile.Completions first-Tab replay' {
         $results = (TabExpansion2 -inputScript 'bat ' -cursorColumn 4).CompletionMatches
         $results.CompletionText | Should -Contain 'ok'
         $global:__CompletionLoaderActive | Should -BeFalse
+    }
+
+    It 'keeps generated top-level helpers available after the first Tab' {
+        (TabExpansion2 -inputScript 'chezmoi ' -cursorColumn 8).CompletionMatches.CompletionText |
+            Should -Contain 'ok'
+        (TabExpansion2 -inputScript 'chezmoi ' -cursorColumn 8).CompletionMatches.CompletionText |
+            Should -Contain 'ok'
+        Get-Command __chezmoi_helper -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
     }
 
     It 'does not recurse when setup registers no completer' {
