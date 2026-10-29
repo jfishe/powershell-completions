@@ -54,7 +54,7 @@ These completions are only registered when `bash` or `git` is available.
 ```powershell
 $completionPath = Split-Path $PROFILE | Join-Path -ChildPath "Completions"
 
-((pandoc --bash-completion) -join "`n") |
+((pandoc --completion=bash) -join "`n") |
   Set-Content -Encoding Ascii -NoNewline `
     -Path "$completionPath\pandoc-completion.sh"
 ```
