@@ -14,7 +14,8 @@ results.
 
 Completion loaders are grouped by source:
 
-- Generated PowerShell completion scripts: `bat`, `pixi`, `rg`, `uv`
+- Generated PowerShell completion scripts: `bat`, `chezmoi`, `pixi`, `rg`,
+  `uv`
 - Imported PowerShell modules: `git`/`tgit`/`gitk` (posh-git), `vim` and its
   variants, `wsl`
 - Saved bash completion files via `PSBashCompletions`: `copilot`, `pandoc`
@@ -69,9 +70,9 @@ $completionPath = Split-Path $PROFILE | Join-Path -ChildPath "Completions"
 
 ## Generated PowerShell completion scripts
 
-`bat`, `pixi`, `rg`, and [Astral `uv`][uv] generate PowerShell completion
-scripts on demand. The generated script is loaded the first time completion is
-requested for each command in a PowerShell session.
+`bat`, [chezmoi][chezmoi], `pixi`, `rg`, and [Astral `uv`][uv] generate
+PowerShell completion scripts on demand. The generated script is loaded the
+first time completion is requested for each command in a PowerShell session.
 
 ## Testing
 
@@ -122,8 +123,9 @@ its first completion.
   [winget-cli completion docs][winget-completion] (MIT).
 - Completions come from [posh-git][posh-git],
   [PSBashCompletions][psbashcompletions], [VimTabCompletion][vimtabcompletion],
-  [WSLTabCompletion][wsltabcompletion], [bat][bat], [ripgrep][rg],
-  [pixi][pixi], [uv][uv], [pandoc][pandoc], and [GitHub Copilot CLI][copilot].
+  [WSLTabCompletion][wsltabcompletion], [bat][bat], [chezmoi][chezmoi],
+  [ripgrep][rg], [pixi][pixi], [uv][uv], [pandoc][pandoc], and
+  [GitHub Copilot CLI][copilot].
   These projects are not bundled here and keep their own licenses.
 
 See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for license details.
@@ -136,6 +138,7 @@ See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for license details.
 [winget]: https://learn.microsoft.com/en-us/windows/package-manager/winget/tab-completion
 [wsltabcompletion]: https://www.powershellgallery.com/packages/WSLTabCompletion/
 [bat]: https://github.com/sharkdp/bat
+[chezmoi]: https://www.chezmoi.io/
 [copilot]: https://docs.github.com/en/copilot
 [pandoc]: https://pandoc.org/
 [pixi]: https://pixi.sh/

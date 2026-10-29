@@ -52,9 +52,9 @@ upstream licenses:
 ## Runtime dependencies
 
 The modules and tools these completions load (posh-git, PSBashCompletions,
-VimTabCompletion, WSLTabCompletion, bat, ripgrep, pixi, uv, pandoc, GitHub
-Copilot CLI, winget) are installed separately. They are not included here and
-are covered by their own licenses.
+VimTabCompletion, WSLTabCompletion, bat, chezmoi, ripgrep, pixi, uv,
+pandoc, GitHub Copilot CLI, winget) are installed separately. They are not
+included here and are covered by their own licenses.
 
 [lazy_loading]: https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell
 [pandoc]: https://github.com/jgm/pandoc/blob/main/COPYRIGHT

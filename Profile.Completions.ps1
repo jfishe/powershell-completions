@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 2.3
+.VERSION 2.4
 
 .GUID e666cc2a-8d7d-4112-a490-ee096bf66401
 
@@ -30,6 +30,7 @@
 
 .EXTERNALSCRIPTDEPENDENCIES
  bat
+ chezmoi
  copilot
  pandoc
  rg
@@ -48,6 +49,8 @@
  2.3: posh-git git completion moved here from the profile. All
  loaders now answer the first <Tab> instead of only registering,
  and every vim variant VimTabCompletion supports is lazy-loaded.
+
+ 2.4: add chezmoi generated completion.
 
 .PRIVATEDATA
 
@@ -71,6 +74,8 @@
  Jimmy Briggs' No Clocks Blog, Lazy Loading Tab Completion Scripts in PowerShell (https://blog.noclocks.dev/lazy-loading-tab-completion-scripts-in-powershell).
 .LINK
  Bat is a Linux cat clone with syntax highlighting and Git integration (https://github.com/sharkdp/bat).
+.LINK
+ Chezmoi manages your dotfiles across multiple machines (https://www.chezmoi.io/).
 .LINK
  Pixi is a fast, modern, and reproducible package management tool for developers of all backgrounds (https://pixi.prefix.dev/dev/installation/#winget).
 .LINK
@@ -196,10 +201,11 @@ if ((Get-Command bash -ErrorAction Ignore) -or (Get-Command git -ErrorAction Ign
     }
 
     $generatedCompletionCommands = @{
-        'bat'  = @('bat', '--completion', 'ps1')
-        'pixi' = @('pixi', 'completion', '--shell=powershell')
-        'rg'   = @('rg', '--generate=complete-powershell')
-        'uv'   = @('uv', 'generate-shell-completion', 'powershell')
+        'bat'     = @('bat', '--completion', 'ps1')
+        'chezmoi' = @('chezmoi', 'completion', 'powershell')
+        'pixi'    = @('pixi', 'completion', '--shell=powershell')
+        'rg'      = @('rg', '--generate=complete-powershell')
+        'uv'      = @('uv', 'generate-shell-completion', 'powershell')
     }
 
     foreach ($entry in $generatedCompletionCommands.GetEnumerator()) {

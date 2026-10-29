@@ -20,6 +20,7 @@ Describe 'Profile.Completions' {
 
     It 'registers self-contained generated completion loaders for <CommandName>' -TestCases @(
         @{ CommandName = 'bat'; Invocation = "& 'bat' '--completion' 'ps1' | Out-String" }
+        @{ CommandName = 'chezmoi'; Invocation = "& 'chezmoi' 'completion' 'powershell' | Out-String" }
         @{ CommandName = 'pixi'; Invocation = "& 'pixi' 'completion' '--shell=powershell' | Out-String" }
         @{ CommandName = 'rg'; Invocation = "& 'rg' '--generate=complete-powershell' | Out-String" }
         @{ CommandName = 'uv'; Invocation = "& 'uv' 'generate-shell-completion' 'powershell' | Out-String" }
@@ -88,6 +89,7 @@ Describe 'Profile.Completions' {
 
     It 'replays completion after loading for <CommandName>' -TestCases @(
         @{ CommandName = 'bat' }
+        @{ CommandName = 'chezmoi' }
         @{ CommandName = 'pixi' }
         @{ CommandName = 'rg' }
         @{ CommandName = 'uv' }
